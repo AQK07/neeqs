@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title> Balloon pop!!!</title>
+  <style>
+    body { margin: 0; overflow: hidden; background: #87ceeb; font-family: sans-serif; }
+
+    /* Instruction window */
+    .instructions {
+      position: fixed;
+      top: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      background-color: rgba(255, 255, 255, 0.8);
+      color: #333;
+      font-size: 20px;
+      padding: 10px 20px;
+      border-radius: 10px;
+      text-align: center;
+      z-index: 3; /* Make sure it's above the balloons */
+    }
+
+    /* Start Button */
+    .start-btn {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background-color: #ff4f4f;
+      color: white;
+      font-size: 24px;
+      padding: 20px 40px;
+      border-radius: 10px;
+      cursor: pointer;
+      z-index: 4; /* Ensures it's above everything else */
+      text-align: center;
+    }
+
+    .start-btn:hover {
+      background-color: #ff0000;
+    }
+
+    /* Score and Timer area */
+    .score, .timer {
+      position: fixed;
+      top: 10px;
+      color: white;
+      font-size: 24px;
+      text-shadow: 0 0 5px #000;
+      z-index: 2; /* Ensures text is above balloons */
+    }
+
+    .score { left: 10px; }
+    .timer { right: 10px; }
+
+    /* Balloon Styles (Circular and Larger) */
+    .balloon {
+      position: absolute;
+      width: 100px;  /* Increased size */
+      height: 100px; /* Perfectly round */
+      background: radial-gradient(circle at 30% 30%, #ff4f4f, #ff0000);
+      border-radius: 50%;  /* Makes the balloon round */
+      cursor: pointer;
+      animation: floatUp 10s linear forwards;
+      z-index: 1; /* Ensure balloons are below the text */
+    }
+
+    /* Balloon String */
+    .string {
+      position: absolute;
+      width: 3px;
+      height: 60px;  /* Longer string */
+      background: #000;
+      left: 50%;
+      top: 100%;
+      transform: translateX(-50%);
+    }
+
+    /* Floating Animation for Balloons */
+    @keyframes floatUp {
+      from { top: 100vh; }
+      to { top: -120px; }
+    }
+
+    /* Message Animations */
+    .message {
+      position: absolute;
+      font-size: 18px;
+      color: #fff;
+      text-shadow: 0 0 5px #000;
+      animation: riseAndFade 2s ease forwards;
+      pointer-events: none;
+    }
+
+    @keyframes riseAndFade {
+      0% { opacity: 1; transform: translateY(0); }
+      100% { opacity: 0; transform: translateY(-50px); }
+    }
+
+    /* Game Over Overlay */
+    .gameover {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: rgba(0,0,0,0.8);
+      color: white;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      font-size: 36px;
+      text-align: center;
+    }
+
+    .gameover button {
+      margin-top: 20px;
+      padding: 12px 24px;
+      font-size: 18px;
+      border: none;
+      border-radius: 10px;
+      background: #ff4f4f;
+      color: white;
+      cursor: pointer;
+    }
+
+    .gameover button:hover {
+      background: #ff0000;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Instruction window -->
+  <div class="instructions" id="instructions">
+    Click on the balloons to pop them!! they all reveal a message :)
+  </div>
+
+  <!-- Start Button -->
+  <div class="start-btn" id="start-btn">
+    Start Game<3
+  </div>
+
+  <div class="score" id="score" style="display: none;">Score: 0</div>
+  <div class="timer" id="timer" style="display: none;">Time: 60</div>
+
+  <script>
+    let score = 0;
+    let timeLeft = 60;
+    let gameActive = false;
+    const messages = [
+      "You're beautiful my love<3",
+      "I love you my neeqah jaan,
+      "You're my everything :)",
+      "Bestest wifey ever",
+      "meri pyaari baby<33",
+      "I’m so blessed to have you :)",
+      "You are my sunshine sweetie pie<33",
+      "I love you forever.",
+      "You give me life. <3.",
+      "Forever yours. <3.",
+      "My lovely lady<3.",
+      "MWAHMWAHMWAHMWAH<33.",
+      "My firefly!!<3.",
+      "My one and only."
+    ];
+
+    // Array to keep track of balloon positions
+    let balloonPositions = [];
+
+    // Function to check if a new balloon's position overlaps with existing ones
+    function isOverlap(newX, newY) {
+      for (let pos of balloonPositions) {
+        // Check if the new position is within 100px of any existing position
+        let distance = Math.sqrt(Math.pow(newX - pos.x, 2) + Math.pow(newY - pos.y, 2));
+        if (distance < 150) { // 100px balloon + margin of 50px buffer
+          return true; // If overlap is detected
+        }
+      }
+      return false; // No overlap
+    }
+
+    // Create Balloon with String
+    function createBalloon() {
+      if (!gameActive) return;
+
+      let balloon = document.createElement("div");
+      balloon.className = "balloon";
+
+      // Try random positions until a valid position is found
+      let newX, newY;
+      do {
+        newX = Math.random() * (window.innerWidth - 100); // Balloon width is 100px
+        newY = Math.random() * (window.innerHeight - 100); // Balloon height is 100px
+      } while (isOverlap(newX, newY)); // Keep trying until no overlap
+
+      // Store the valid position in the balloonPositions array
+      balloonPositions.push({ x: newX, y: newY });
+
+      balloon.style.left = newX + "px";
+      balloon.style.top = newY + "px";
+      document.body.appendChild(balloon);
+
+      // Balloon String
+      let string = document.createElement("div");
+      string.className = "string";
+      balloon.appendChild(string);
+
+      balloon.onclick = (e) => {
+        if (!gameActive) return;
+        score++;
+        document.getElementById("score").innerText = "Score: " + score;
+        showMessage(e.clientX, e.clientY);
+        balloon.remove();
+        // Remove the balloon position from the tracking array
+        balloonPositions = balloonPositions.filter(pos => pos.x !== newX || pos.y !== newY);
+      };
+
+      setTimeout(() => {
+        balloon.remove();
+        // Remove the balloon position from the tracking array if it disappears
+        balloonPositions = balloonPositions.filter(pos => pos.x !== newX || pos.y !== newY);
+      }, 10000);
+    }
+
+    // Show Random Message
+    function showMessage(x, y) {
+      let msg = document.createElement("div");
+      msg.className = "message";
+      msg.style.left = (x - 30) + "px";
+      msg.style.top = (y - 20) + "px";
+      msg.innerText = messages[Math.floor(Math.random() * messages.length)];
+      document.body.appendChild(msg);
+
+      setTimeout(() => {
+        msg.remove();
+      }, 2000);
+    }
+
+    // Start Countdown Timer
+    function startTimer() {
+      const timer = document.getElementById("timer");
+      const countdown = setInterval(() => {
+        if (timeLeft <= 0) {
+          clearInterval(countdown);
+          endGame();
+        } else {
+          timeLeft--;
+          timer.innerText = "Time: " + timeLeft;
+        }
+      }, 1000);
+    }
+
+    // End Game and Show Score
+    function endGame() {
+      gameActive = false;
+      const overlay = document.createElement("div");
+      overlay.className = "gameover";
+      overlay.innerHTML = `
+        <div>Time's up!<br>Your score: ${score}</div>
+        <button onclick="location.reload()">Play Again</button>
+        <button onclick="window.location.href='loveyyy.html'">Click here!!</button>
+      `;
+      document.body.appendChild(overlay);
+    }
+
+    // Start the game when the start button is clicked
+    document.getElementById("start-btn").onclick = function() {
+      gameActive = true;
+      this.style.display = "none";  // Hide start button
+      document.getElementById("score").style.display = "block";  // Show score text
+      document.getElementById("timer").style.display = "block";  // Show timer
+      setInterval(createBalloon, 800);
+      startTimer();
+    };
+  </script>
+</body>
+</html>
